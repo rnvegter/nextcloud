@@ -1,0 +1,6 @@
+.env
+restic.env
+app/
+data/
+db/
+backup/
