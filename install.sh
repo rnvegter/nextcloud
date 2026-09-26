@@ -77,7 +77,8 @@ cat <<EOF
 Nextcloud is set up in $TARGET
 
 Next steps:
-  1. Edit $TARGET/.env: set NEXTCLOUD_TRUSTED_DOMAINS (and NEXTCLOUD_VERSION if you want to pin one).
+  1. Edit $TARGET/.env: set NEXTCLOUD_DOMAIN (and NEXTCLOUD_VERSION if you want to pin one).
+     Add a matching proxy host in Nginx Proxy Manager (see README, "Reverse proxy").
   2. Edit $TARGET/restic.env: set RESTIC_REPOSITORY to your Storage Box.
      Save RESTIC_PASSWORD in your password manager. Restoring on a new server needs it.
   3. Give this machine SSH access to the Storage Box (run as the user that runs backups):
