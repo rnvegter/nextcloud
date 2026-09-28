@@ -35,6 +35,7 @@ Self-hosted Nextcloud deployment as code: Docker Compose (Nextcloud + PostgreSQL
 
 - Commit messages: imperative mood, concise ("Add Nextcloud Docker Compose setup with ...").
 - Commits go directly to `main`; no branch/PR workflow in use.
+- Always push after committing: origin is `rnvegter/nextcloud` (github.com/rnvegter/nextcloud) — commits never stay local-only.
 - Never commit `.env`, `restic.env`, `app/`, `data/`, `db/`, `backup/` (all gitignored).
 
 ## After changes, verify
