@@ -23,8 +23,10 @@ Nextcloud on PostgreSQL and Redis, with all data in plain folders and nightly re
 ## New server
 
 ```bash
-./install.sh /srv/nextcloud
+sudo ./install.sh /srv/nextcloud
 ```
+
+On Linux everything runs as root: the deployment is root-owned (`chmod 600` secrets, `data/` owned by the container's www-data) and `docker compose` reads that `.env` before every command. Prefix compose and script commands with `sudo`.
 
 Then:
 
@@ -33,7 +35,7 @@ Then:
 3. Give the server SSH access to the Storage Box (port 23):
    `ssh-copy-id -p 23 -s u123456@u123456.your-storagebox.de`
 4. Start Nextcloud and create the backup repository:
-   `cd /srv/nextcloud && docker compose up -d && scripts/backup.sh init`
+   `cd /srv/nextcloud && sudo docker compose up -d && sudo scripts/backup.sh init`
 5. In Nextcloud, set background jobs to "Cron" (Administration > Basic settings).
 
 ## Reverse proxy
@@ -67,7 +69,7 @@ https://nextcloud.home.yourdomain.nl
 **Good to know:**
 
 - The trusted domain is only read at first install. To add or change a domain later:
-  `docker compose exec -u www-data app php occ config:system:set trusted_domains 1 --value=nextcloud.home.yourdomain.nl`
+  `sudo docker compose exec -u www-data app php occ config:system:set trusted_domains 1 --value=nextcloud.home.yourdomain.nl`
 - Keep Nextcloud out of the Cloudflare Tunnel: uploads over 100 MB fail there. Use it at home or over Tailscale.
 - To stop people bypassing HTTPS on port 8080, set `NEXTCLOUD_BIND_IP=172.17.0.1` (Docker's bridge address on Linux; check with `ip -4 addr show docker0`). Only the proxy can reach Nextcloud then.
 
@@ -83,12 +85,12 @@ Run it nightly, for example from root's crontab:
 
 ## Restore or move to another server
 
-1. `./install.sh /srv/nextcloud` (without `--start`).
+1. `sudo ./install.sh /srv/nextcloud` (without `--start`).
 2. Copy the old `restic.env` into `/srv/nextcloud`.
-3. `/srv/nextcloud/scripts/restore.sh` (or pass a snapshot id; default is `latest`).
+3. `sudo /srv/nextcloud/scripts/restore.sh` (or pass a snapshot id; default is `latest`).
 
 The restore brings back files, database and `.env`, then starts Nextcloud. If the domain changed, add it with `occ config:system:set trusted_domains`.
 
 ## Requirements
 
-Docker with the Compose plugin, `openssl`, and `restic` on the host.
+Docker with the Compose plugin, `openssl`, and `restic` on the host. Root access on Linux — the whole deployment runs as root.

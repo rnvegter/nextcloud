@@ -2,7 +2,7 @@
 # Sets up a Nextcloud deployment folder: compose file, scripts, data folders and secrets.
 # Safe to re-run: existing .env, restic.env and compose.yaml are kept, scripts are refreshed.
 #
-# Usage: ./install.sh [target-dir] [--start]
+# Usage: sudo ./install.sh [target-dir] [--start]   (root is required on Linux)
 #   target-dir  where the deployment lives (default: /srv/nextcloud)
 #   --start     start the stack after installing (skip this when you plan to restore a backup)
 set -euo pipefail
@@ -14,11 +14,19 @@ START=false
 for arg in "$@"; do
   case "$arg" in
     --start) START=true ;;
-    -h|--help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "Unknown option: $arg" >&2; exit 1 ;;
     *) TARGET="$arg" ;;
   esac
 done
+
+# On Linux the whole deployment is root-owned: .env is chmod 600 (compose reads it
+# before every command) and data/ must be owned by www-data (uid 33), which only root
+# can set. Docker Desktop on macOS maps ownership itself, so root is not needed there.
+if [[ "$(uname -s)" == Linux && $EUID -ne 0 ]]; then
+  echo "install.sh must run as root on Linux: sudo $0 $*" >&2
+  exit 1
+fi
 
 need() { command -v "$1" >/dev/null || { echo "Missing required tool: $1" >&2; exit 1; }; }
 need docker
@@ -61,9 +69,10 @@ if [[ ! -e "$TARGET/restic.env" ]]; then
   echo "Created $TARGET/restic.env with a random repository password"
 fi
 
-# On Linux the container writes user files as www-data (uid 33).
-# Docker Desktop on macOS maps ownership itself.
-if [[ "$(uname -s)" == Linux && $EUID -eq 0 ]]; then
+# The container writes user files as www-data (uid 33). Without this, www-data cannot
+# create or write in data/ and the first install fails with
+# "Cannot create or write into the data directory".
+if [[ "$(uname -s)" == Linux ]]; then
   chown 33:33 "$TARGET/data"
   chmod 750 "$TARGET/data"
 fi
@@ -84,9 +93,9 @@ Next steps:
   3. Give this machine SSH access to the Storage Box (run as the user that runs backups):
        ssh-keygen -t ed25519            # if you have no key yet
        ssh-copy-id -p 23 -s u123456@u123456.your-storagebox.de
-  4. Then choose one:
-     New instance:       cd $TARGET && docker compose up -d && scripts/backup.sh init
-     Restore a backup:   copy the old restic.env here, then run $TARGET/scripts/restore.sh
+  4. Then choose one (run as root — compose and the scripts read the root-owned .env):
+     New instance:       cd $TARGET && sudo docker compose up -d && sudo scripts/backup.sh init
+     Restore a backup:   copy the old restic.env here, then run sudo $TARGET/scripts/restore.sh
   5. Schedule nightly backups, e.g. in root's crontab:
        30 3 * * * $TARGET/scripts/backup.sh >> /var/log/nextcloud-backup.log 2>&1
 EOF
